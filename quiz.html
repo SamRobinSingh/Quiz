@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreen IoT Quiz</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #start-screen, #quiz-container, #result-screen { background-color: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 600px; width: 100%; }
+        #quiz-container, #result-screen { display: none; }
+        h1 { color: #333; }
+        #question-text { font-size: 1.5em; margin-bottom: 20px; }
+        .options { list-style: none; padding: 0; text-align: left; }
+        .options li { background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: background-color 0.2s; }
+        .options li:hover { background-color: #e9ecef; }
+        button { background-color: #007bff; color: white; border: none; padding: 15px 30px; font-size: 1em; border-radius: 5px; cursor: pointer; margin-top: 20px; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; box-sizing: border-box; }
+        
+        /* --- NEW STYLE FOR BUTTONS --- */
+        #button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Welcome to the IoT Quiz!</h1>
+        <form id="user-info-form">
+            <div class="form-group">
+                <label for="name-input">Full Name</label>
+                <input type="text" id="name-input" placeholder="Enter your full name" required>
+            </div>
+            <div class="form-group">
+                <label for="email-input">College Email ID</label>
+                <input type="email" id="email-input" placeholder="Enter your college email" required>
+            </div>
+            <p>You can only attempt the quiz once per email ID.</p>
+            <button type="submit" id="start-btn">Start Quiz</button>
+        </form>
+    </div>
+
+    <div id="quiz-container">
+        <h2 id="question-text">Question goes here...</h2>
+        <ul id="options-container" class="options"></ul>
+        <div id="button-container">
+            <button id="back-btn">Back</button>
+            <button id="next-btn">Next</button>
+        </div>
+    </div>
+    
+    <div id="result-screen">
+        <h1>Quiz Complete!</h1>
+        <p id="score-text">Your score will be displayed here.</p>
+        <p>Thank you for participating.</p>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyTuOa5S7-mdbt0JV-cOwelcon2oJx4fc9mQzVRnt7fA4EUBSo5qJ9gM59lC1XhjYyqWA/exec';
+        const quizData = [
+            { question: "What is the primary goal of the Internet of Things (IoT)?", options: ["To create faster internet connections for computers.", "To connect physical objects to the internet to send and receive data.", "To design more powerful microcontrollers.", "To build social media platforms for devices."], answer: "To connect physical objects to the internet to send and receive data." },
+            { question: "In an IoT system, what is the function of a sensor?", options: ["To perform a physical action like turning on a light.", "To store data in the cloud.", "To collect data from the physical environment.", "To display information on a dashboard."], answer: "To collect data from the physical environment." },
+            { question: "What is the role of an actuator in an IoT system?", options: ["To measure the temperature of a room.", "To convert a digital signal into a physical action.", "To send data over a Wi-Fi network.", "To analyze data patterns."], answer: "To convert a digital signal into a physical action." },
+            { question: "In the context of our workshop, what is Wokwi primarily used for?", options: ["To visualize live data charts and gauges.", "To write and compile Python code for AI models.", "To simulate electronic circuits and run code without physical hardware.", "To provide long-term storage for sensor readings."], answer: "To simulate electronic circuits and run code without physical hardware." },
+            { question: "What is the main purpose of a cloud platform like ThingSpeak in an IoT project?", options: ["To design the physical circuit of the IoT device.", "To write the firmware that runs on the ESP32.", "To receive, store, and visualize data sent from devices.", "To connect the ESP32 to the DHT22 sensor."], answer: "To receive, store, and visualize data sent from devices." },
+            { question: "What does the acronym MQTT stand for?", options: ["Machine Quality Telemetry Transfer", "Message Queuing Telemetry Transport", "Main Quad Telemetry Transmission", "Machine to Query Time Transfer"], answer: "Message Queuing Telemetry Transport" },
+            { question: "What is the purpose of the 'Write API Key' in ThingSpeak?", options: ["To publicly share your data with anyone on the internet.", "To act as a password, authorizing your device to send data to your channel.", "To change the visual appearance of your dashboard.", "To connect your ESP32 to your Wi-Fi network."], answer: "To act as a password, authorizing your device to send data to your channel." },
+            { question: "The ESP32 is an example of a...", options: ["Sensor", "Cloud Platform", "Microcontroller", "Communication Protocol"], answer: "Microcontroller" },
+            { question: "In the 4-layer IoT architecture, which layer is responsible for storing and analyzing data?", options: ["Sensing Layer", "Network Layer", "Application Layer", "Data Processing Layer"], answer: "Data Processing Layer" },
+            { question: "The MQTT protocol's 'Publish/Subscribe' model is efficient because...", options: ["The server constantly asks the device if it has new data.", "The device sends data only when a subscriber requests it.", "The device sends data to a central topic, and subscribers are notified instantly.", "It sends very large packets of data at once to save time."], answer: "The device sends data to a central topic, and subscribers are notified instantly." },
+            { question: "What is the key difference between IoT and Machine-to-Machine (M2M) communication?", options: ["M2M uses the internet, while IoT does not.", "IoT connects devices to a cloud platform for many applications, while M2M is typically a point-to-point connection for one application.", "M2M is used for sensors, while IoT is used for actuators.", "There is no difference; the terms are interchangeable."], answer: "IoT connects devices to a cloud platform for many applications, while M2M is typically a point-to-point connection for one application." },
+            { question: "In Arduino or MicroPython code for an IoT device, what is the purpose of the loop() function?", options: ["To run code once at the very beginning to initialize settings.", "To run code repeatedly and continuously as long as the device is powered on.", "To connect the device to the Wi-Fi network.", "To stop the program and put the device to sleep."], answer: "To run code repeatedly and continuously as long as the device is powered on." },
+            { question: "Why is data visualization considered a crucial step in an IoT project?", options: ["It makes the data packets smaller for transmission.", "It encrypts the data for better security.", "It helps to quickly identify trends, patterns, and anomalies that are not obvious from raw numbers.", "It is the only way to store data on ThingSpeak."], answer: "It helps to quickly identify trends, patterns, and anomalies that are not obvious from raw numbers." },
+            { question: "Which of these is a key challenge related to the 'Interoperability' of IoT devices?", options: ["Protecting a device from being hacked.", "Ensuring a device can run for years on a small battery.", "Making devices from different manufacturers work together seamlessly.", "Managing software updates for millions of devices at once."], answer: "Making devices from different manufacturers work together seamlessly." },
+            { question: "What is the relationship between the ESP32 and the DHT22 in our workshop's project?", options: ["The DHT22 powers the ESP32.", "The ESP32 is a sensor that reports data to the DHT22.", "The ESP32 is a microcontroller that reads data from the DHT22 sensor.", "They are two names for the same component."], answer: "The ESP32 is a microcontroller that reads data from the DHT22 sensor." },
+            { question: "A 'Channel' in ThingSpeak is best described as:", options: ["A programming language used to code the device.", "A specific communication frequency for Wi-Fi.", "A destination where a specific device sends its data, containing one or more data fields.", "The physical wire connecting the sensor to the microcontroller."], answer: "A destination where a specific device sends its data, containing one or more data fields." },
+            { question: "In the 'Data Value Chain', what is the final step after collecting data, deriving information, and gaining insight?", options: ["Storage", "Visualization", "Action", "Protocol"], answer: "Action" },
+            { question: "You have deployed an agricultural sensor that needs to send a temperature reading twice a day from a remote field with no Wi-Fi. It must run on a single battery for 5 years. Which communication protocol is most suitable?", options: ["Wi-Fi", "Bluetooth", "LoRaWAN", "Ethernet"], answer: "LoRaWAN" },
+            { question: "Your simulated device in Wokwi is running, but no data is appearing on your ThingSpeak dashboard. Which of the following is the MOST likely cause of the problem?", options: ["The DHT22 sensor is broken.", "The 'Write API Key' in your code does not match the key in your ThingSpeak channel.", "Your computer's internet connection is down.", "You chose the wrong color for your chart on the dashboard."], answer: "The 'Write API Key' in your code does not match the key in your ThingSpeak channel." },
+            { question: "The term 'Cyber-Physical System' is often used to describe IoT. What does it mean?", options: ["A system that is completely virtual and exists only in cyberspace.", "A system that integrates computation, networking, and physical processes.", "A system designed to protect against cyberattacks.", "A physical machine that has no connection to the internet."], answer: "A system that integrates computation, networking, and physical processes." },
+            { question: "In a formal IoT architecture, what is the purpose of a Unique Identifier (UID)?", options: ["To describe the type of sensor being used.", "To provide a universal timestamp for every data point.", "To distinguish one specific device from potentially billions of others.", "To encrypt the data during transmission."], answer: "To distinguish one specific device from potentially billions of others." },
+            { question: "Which statement best describes the relationship between IoT and AI, leading to the concept of AIoT?", options: ["AI is a communication protocol that IoT devices use.", "IoT provides the data from the real world, and AI provides the ability to analyze that data to make intelligent predictions and decisions.", "AI and IoT are competing technologies to achieve the same goal.", "IoT is a subfield of AI."], answer: "IoT provides the data from the real world, and AI provides the ability to analyze that data to make intelligent predictions and decisions." },
+            { question: "A smart factory wants to predict when its machines will fail. It has collected years of temperature and vibration data. Who in the IoT Ecosystem is primarily responsible for creating the predictive model?", options: ["The Hardware Manufacturer", "The Connectivity Provider", "The Application Developer", "The Cloud Platform Provider"], answer: "The Application Developer" },
+            { question: "You see a line of code: client.publish(\"home/livingroom/temperature\", tempString);. This is an example of what action?", options: ["An actuator turning on a light.", "An MQTT client subscribing to a topic.", "A sensor reading a value from the environment.", "An MQTT client publishing a message to a topic."], answer: "An MQTT client publishing a message to a topic." },
+            { question: "Which of the following represents the biggest 'Scalability' challenge in a large-scale IoT deployment?", options: ["Choosing between a DHT11 and a DHT22 temperature sensor.", "Writing the initial firmware for a single device.", "Performing a critical security update on 100,000 devices deployed across a city.", "Creating a single dashboard chart in ThingSpeak."], answer: "Performing a critical security update on 100,000 devices deployed across a city." }
+        ];
+
+        // --- GET HTML ELEMENTS (UPDATED) ---
+        const startScreen = document.getElementById('start-screen');
+        const quizContainer = document.getElementById('quiz-container');
+        const resultScreen = document.getElementById('result-screen');
+        const userInfoForm = document.getElementById('user-info-form');
+        const nameInput = document.getElementById('name-input');
+        const emailInput = document.getElementById('email-input');
+        const startBtn = document.getElementById('start-btn');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const nextBtn = document.getElementById('next-btn');
+        const backBtn = document.getElementById('back-btn'); // New back button
+        const scoreText = document.getElementById('score-text');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let userAnswers = [];
+        let quizSubmitted = false;
+        
+        // --- EVENT LISTENERS (UPDATED) ---
+        userInfoForm.addEventListener('submit', handleFormSubmit);
+        nextBtn.addEventListener('click', handleNextButton);
+        backBtn.addEventListener('click', handleBackButton); // New listener for back button
+        
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            if (name === '' || email === '') { alert("Please fill in all fields."); return; }
+            startBtn.disabled = true;
+            startBtn.innerText = "Checking...";
+            window.handleEmailCheckResponse = function(result) {
+                if (result.status === "exists") {
+                    alert("This email address has already been used to complete the quiz.");
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Start Quiz";
+                } else if (result.status === "new") {
+                    localStorage.setItem('quizUserName', name);
+                    localStorage.setItem('quizUserEmail', email);
+                    startQuiz();
+                } else {
+                    alert("An error occurred: " + result.message);
+                    startBtn.disabled = false;
+                    startBtn.innerText = "Start Quiz";
+                }
+                document.body.removeChild(document.getElementById('jsonp-script'));
+                delete window.handleEmailCheckResponse;
+            };
+            const script = document.createElement('script');
+            script.id = 'jsonp-script';
+            script.src = `${scriptURL}?email=${encodeURIComponent(email)}&callback=handleEmailCheckResponse`;
+            document.body.appendChild(script);
+        }
+
+        function startQuiz() {
+            document.documentElement.requestFullscreen().then(() => {
+                startScreen.style.display = 'none';
+                quizContainer.style.display = 'block';
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                loadQuestion();
+            }).catch(err => {
+                alert(`Error enabling full-screen mode: ${err.message}. Please allow full-screen access.`);
+                startBtn.disabled = false;
+                startBtn.innerText = "Start Quiz";
+            });
+        }
+        
+        // --- MODIFIED loadQuestion FUNCTION ---
+        function loadQuestion() {
+            optionsContainer.innerHTML = '';
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionText.innerText = `Q${currentQuestionIndex + 1}: ${currentQuestion.question}`;
+            
+            currentQuestion.options.forEach(option => {
+                const li = document.createElement('li');
+                li.innerText = option;
+                li.addEventListener('click', () => selectAnswer(option, li));
+                optionsContainer.appendChild(li);
+            });
+
+            // Show or hide the back button
+            if (currentQuestionIndex === 0) {
+                backBtn.style.display = 'none';
+            } else {
+                backBtn.style.display = 'inline-block';
+            }
+
+            // Change Next button to Submit on the last question
+            if (currentQuestionIndex === quizData.length - 1) {
+                nextBtn.innerText = 'Submit';
+            } else {
+                nextBtn.innerText = 'Next';
+            }
+
+            // Restore previous answer if it exists
+            const savedAnswer = userAnswers[currentQuestionIndex];
+            if (savedAnswer) {
+                optionsContainer.querySelectorAll('li').forEach(li => {
+                    if (li.innerText === savedAnswer) {
+                        li.style.backgroundColor = '#d1e7fd';
+                    }
+                });
+                nextBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'none';
+            }
+        }
+        
+        function selectAnswer(selectedOption, selectedElement) {
+            optionsContainer.querySelectorAll('li').forEach(opt => opt.style.backgroundColor = '');
+            selectedElement.style.backgroundColor = '#d1e7fd';
+            userAnswers[currentQuestionIndex] = selectedOption;
+            nextBtn.style.display = 'inline-block';
+        }
+        
+        function handleNextButton() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                loadQuestion();
+            } else {
+                submitQuiz("You have completed the quiz!");
+            }
+        }
+        
+        // --- NEW handleBackButton FUNCTION ---
+        function handleBackButton() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+        
+        function submitQuiz(message) {
+            if (quizSubmitted) return;
+            quizSubmitted = true;
+            score = 0;
+            quizData.forEach((item, index) => {
+                if(userAnswers[index] === item.answer) { score++; }
+            });
+            sendDataToSheet();
+            alert(message);
+            quizContainer.style.display = 'none';
+            scoreText.innerText = `You scored ${score} out of ${quizData.length}.`;
+            resultScreen.style.display = 'block';
+            if (document.fullscreenElement) document.exitFullscreen();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        }
+
+        function sendDataToSheet() {
+            const name = localStorage.getItem('quizUserName');
+            const email = localStorage.getItem('quizUserEmail');
+            const dataToSend = { name, email, score: `${score} / ${quizData.length}` };
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify(dataToSend)
+            })
+            .then(response => console.log('Successfully sent score data.'))
+            .catch(error => console.error('Error sending score data:', error));
+        }
+
+        function handleVisibilityChange() {
+            if (document.hidden) { submitQuiz("Quiz submitted automatically because you switched tabs."); }
+        }
+
+        function handleFullscreenChange() {
+            if (!document.fullscreenElement && !quizSubmitted) { submitQuiz("Quiz submitted automatically because you exited full-screen mode."); }
+        }
+    </script>
+</body>
+</html>
